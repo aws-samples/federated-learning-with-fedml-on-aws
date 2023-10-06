@@ -236,7 +236,7 @@ resource "aws_iam_policy" "fedml" {
         "sagemaker:DescribeExperiment",
         "sagemaker:DescribeTrial"
       ],
-      "Resource": "*"
+      "Resource": "arn:aws:sagemaker:us-west-2:*:experiment/*"
     }
   ]
 }
