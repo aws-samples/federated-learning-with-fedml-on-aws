@@ -28,7 +28,7 @@ locals {
   name   = var.name
   region = "us-west-2"
 
-  cluster_version = "1.24"
+  cluster_version = "1.25"
 
   vpc_cidr = "10.0.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
@@ -36,20 +36,17 @@ locals {
   namespace = "fedml"
   fedml_sa = "fedml-sa"
 
-
   tags = {
     Blueprint  = var.name
     GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints"
   }
 }
 
-
 ################################################################################
 # Cluster
 ################################################################################
 
 #tfsec:ignore:aws-eks-enable-control-plane-logging
-
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 19.12"
@@ -89,7 +86,6 @@ module "eks" {
 ################################################################################
 # EKS Blueprints Addons
 ################################################################################
-
 
 module "eks_blueprints_addons" {
   # tflint-ignore: terraform_module_pinned_source
@@ -137,7 +133,6 @@ module "eks_blueprints_addons" {
 
   }
 
-
   # Add-ons
   enable_amazon_eks_aws_ebs_csi_driver = true
   enable_aws_for_fluentbit             = true
@@ -157,7 +152,6 @@ module "eks_blueprints_addons" {
 
   tags = local.tags
 }
-
 
 #---------------------------------------------------------------
 # ArgoCD Admin Password credentials with Secrets Manager
@@ -179,11 +173,18 @@ resource "bcrypt_hash" "argo" {
 resource "aws_secretsmanager_secret" "argocd" {
   name                    = "argocd_${var.name}"
   recovery_window_in_days = 0 # Set to zero for this example to force delete during Terraform destroy
+  kms_key_id = aws_kms_key.managed_kms_key.id
 }
 
 resource "aws_secretsmanager_secret_version" "argocd" {
   secret_id     = aws_secretsmanager_secret.argocd.id
   secret_string = random_password.argocd.result
+}
+
+resource "aws_kms_key" "managed_kms_key" {
+  description             = "KMS key used for ${var.name} Argo admin sercret"
+  deletion_window_in_days = 10
+  enable_key_rotation = true
 }
 
 ################################################################################
@@ -237,7 +238,6 @@ resource "aws_iam_policy" "fedml" {
 }
 POLICY
 }
-
 
 ################################################################################
 # Supporting Resources

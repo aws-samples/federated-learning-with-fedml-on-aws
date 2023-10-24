@@ -28,7 +28,7 @@ locals {
   name   = var.name
   region = "us-west-2"
 
-  cluster_version = "1.24"
+  cluster_version = "1.25"
 
   vpc_cidr = "10.0.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
@@ -51,7 +51,7 @@ locals {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.12"
+  version = "~> 19.17.2"
 
   cluster_name                   = var.name
   cluster_version                = local.cluster_version
@@ -85,10 +85,10 @@ module "eks" {
   tags = local.tags
 }
 
+/*
 ################################################################################
 # Kubernetes Addons
 ################################################################################
-
 
 module "eks_blueprints_kubernetes_addons" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.32.1"
@@ -161,7 +161,7 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 }
-
+*/
 
 #---------------------------------------------------------------
 # ArgoCD Admin Password credentials with Secrets Manager
@@ -183,6 +183,7 @@ resource "bcrypt_hash" "argo" {
 resource "aws_secretsmanager_secret" "argocd" {
   name                    = "argocd_${var.name}"
   recovery_window_in_days = 0 # Set to zero for this example to force delete during Terraform destroy
+  kms_key_id = aws_kms_key.managed_kms_key.id
 }
 
 resource "aws_secretsmanager_secret_version" "argocd" {
@@ -190,6 +191,11 @@ resource "aws_secretsmanager_secret_version" "argocd" {
   secret_string = random_password.argocd.result
 }
 
+resource "aws_kms_key" "managed_kms_key" {
+  description             = "KMS key used for ${var.name} Argo admin sercret"
+  deletion_window_in_days = 10
+  enable_key_rotation = true
+}
 
 ################################################################################
 # IRSA
@@ -242,7 +248,6 @@ resource "aws_iam_policy" "fedml" {
 }
 POLICY
 }
-
 
 ################################################################################
 # Supporting Resources
