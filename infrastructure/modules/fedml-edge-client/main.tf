@@ -85,7 +85,6 @@ module "eks" {
   tags = local.tags
 }
 
-/*
 ################################################################################
 # Kubernetes Addons
 ################################################################################
@@ -161,7 +160,6 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 }
-*/
 
 #---------------------------------------------------------------
 # ArgoCD Admin Password credentials with Secrets Manager
